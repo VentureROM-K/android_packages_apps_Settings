@@ -110,7 +110,7 @@ public class Halo extends SettingsPreferenceFragment
         try {
             return mNotificationManager.isHaloPolicyBlack();
         } catch (android.os.RemoteException ex) {
-                // System dead
+           // System dead
         }
         return true;
     }
@@ -133,7 +133,7 @@ public class Halo extends SettingsPreferenceFragment
             Settings.System.putInt(mContext.getContentResolver(),
                     Settings.System.HALO_UNLOCK_PING, mHaloUnlockPing.isChecked()
                     ? 1 : 0);
-        }
+       }
         return super.onPreferenceTreeClick(preferenceScreen, preference);
     }
 

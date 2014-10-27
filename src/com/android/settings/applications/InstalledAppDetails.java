@@ -428,7 +428,7 @@ public class InstalledAppDetails extends Fragment
 
     private void initNotificationButton() {
         boolean enabled = true; // default on
-        boolean allowedForHalo = true; // default on
+        boolean allowedForHalo = true; // also default on
         try {
             enabled = mNotificationManager.areNotificationsEnabledForPackage(mAppEntry.info.packageName,
                     mAppEntry.info.uid);
@@ -469,7 +469,7 @@ public class InstalledAppDetails extends Fragment
         try {
             mHaloPolicyIsBlack = mNotificationManager.isHaloPolicyBlack();
         } catch (android.os.RemoteException ex) {
-            // System dead
+            // The system is down, virus = very yes
         }
 
         // Need to make sure we have loaded applications at this point.
@@ -1399,6 +1399,14 @@ public class InstalledAppDetails extends Fragment
         }
     }
 
+    private void setHaloState(boolean state) {
+        try {
+            mNotificationManager.setHaloStatus(mAppEntry.info.packageName, state);
+        } catch (android.os.RemoteException ex) {
+            mHaloState.setChecked(!state); // revert
+        }
+    }
+
     private void setPeekState(boolean state) {
         if(getPeekState() != state)
             mPeekBlacklist.setChecked(state); // needed when Peek state is set manually
@@ -1548,6 +1556,8 @@ public class InstalledAppDetails extends Fragment
             } else {
                 setNotificationsEnabled(true);
             }
+        } else if (buttonView == mHaloState) {
+            setHaloState(isChecked);
         } else if (buttonView == mPeekBlacklist) {
             setPeekState(isChecked);
         } else if (buttonView == mFloatingBlacklist) {
