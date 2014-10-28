@@ -1449,14 +1449,6 @@ public class InstalledAppDetails extends Fragment
         return mHoverBlacklist.isChecked();
     }
 
-    private void setHaloState(boolean state) {
-        try {
-            mNotificationManager.setHaloStatus(mAppEntry.info.packageName, state);
-        } catch (android.os.RemoteException ex) {
-            mHaloState.setChecked(!state); // revert
-        }
-    }
-
     private int getPremiumSmsPermission(String packageName) {
         try {
             if (mSmsManager != null) {
