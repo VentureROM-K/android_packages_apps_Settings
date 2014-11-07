@@ -24,6 +24,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -35,9 +36,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceScreen;
 import android.provider.Settings;
@@ -46,6 +49,9 @@ import android.util.Log;
 
 import com.android.internal.view.RotationPolicy;
 import com.android.settings.DreamSettings;
+import com.android.settings.Utils;
+
+import com.android.settings.cyanogenmod.SystemSettingCheckBoxPreference;
 
 import java.util.ArrayList;
 
@@ -61,6 +67,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     private static final String KEY_PROXIMITY_WAKE = "proximity_on_wake";
     private static final String KEY_FONT_SIZE = "font_size";
     private static final String KEY_NOTIFICATION_PULSE = "notification_pulse";
+    private static final String KEY_BATTERY_LIGHT = "battery_light";
     private static final String KEY_SCREEN_SAVER = "screensaver";
     private static final String KEY_PEEK = "notification_peek";
     private static final String KEY_DYNAMIC_STATUS_BAR = "dynamic_status_bar";
@@ -68,18 +75,21 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     private static final String KEY_DYNAMIC_SYSTEM_BARS_GRADIENT = "dynamic_system_bars_gradient";
     private static final String KEY_DYNAMIC_STATUS_BAR_FILTER = "dynamic_status_bar_filter";
 
-    private static final String PEEK_APPLICATION = "com.jedga.peek";
+    private static final String PEEK_APPLICATION = "com.jedga.peek.free";
 
     private static final int DLG_GLOBAL_CHANGE_WARNING = 1;
 
     private CheckBoxPreference mAccelerometer;
+    private FontDialogPreference mFontSizePref;
     private CheckBoxPreference mNotificationPeek;
+
     private CheckBoxPreference mDynamicStatusBar;
     private CheckBoxPreference mDynamicNavigationBar;
     private CheckBoxPreference mDynamicSystemBarsGradient;
     private CheckBoxPreference mDynamicStatusBarFilter;
     private WarnedListPreference mFontSizePref;
     private PreferenceScreen mNotificationPulse;
+    private PreferenceScreen mBatteryPulse;
 
     private final Configuration mCurConfig = new Configuration();
 
@@ -101,22 +111,14 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         return isPackageInstalled(PEEK_APPLICATION);
     }
 
-    private boolean isPackageInstalled(String packagename) {
-        PackageManager pm = getActivity().getPackageManager();
-        try {
-            pm.getPackageInfo(packagename, PackageManager.GET_ACTIVITIES);
-            return true;
-        } catch (NameNotFoundException e) {
-            return false;
-        }
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ContentResolver resolver = getActivity().getContentResolver();
 
         addPreferencesFromResource(R.xml.display_settings);
+
+        Resources res = getResources();
 
         mAccelerometer = (CheckBoxPreference) findPreference(KEY_ACCELEROMETER);
         mAccelerometer.setPersistent(false);
@@ -130,7 +132,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
 
         mScreenSaverPreference = findPreference(KEY_SCREEN_SAVER);
         if (mScreenSaverPreference != null
-                && getResources().getBoolean(
+                && res.getBoolean(
                         com.android.internal.R.bool.config_dreamsSupported) == false) {
             getPreferenceScreen().removePreference(mScreenSaverPreference);
         }
@@ -143,14 +145,14 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         disableUnusableTimeouts(mScreenTimeoutPreference);
         updateTimeoutPreferenceDescription(currentTimeout);
 
-        boolean proximityCheckOnWait = getResources().getBoolean(
+        boolean proximityCheckOnWait = res.getBoolean(
                 com.android.internal.R.bool.config_proximityCheckOnWake);
         if (!proximityCheckOnWait) {
              getPreferenceScreen().removePreference(findPreference(KEY_PROXIMITY_WAKE));
              Settings.System.putInt(getContentResolver(), Settings.System.PROXIMITY_ON_WAKE, 1);
         }
 
-        mFontSizePref = (WarnedListPreference) findPreference(KEY_FONT_SIZE);
+        mFontSizePref = (FontDialogPreference) findPreference(KEY_FONT_SIZE);
         mFontSizePref.setOnPreferenceChangeListener(this);
         mFontSizePref.setOnPreferenceClickListener(this);
 
@@ -171,13 +173,20 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         mNotificationPeek = (CheckBoxPreference) findPreference(KEY_PEEK);
         mNotificationPeek.setPersistent(false);
 
-        boolean hasNotificationLed = getResources().getBoolean(
+        boolean hasNotificationLed = res.getBoolean(
                 com.android.internal.R.bool.config_intrusiveNotificationLed);
+        boolean hasBatteryLed = res.getBoolean(
+                com.android.internal.R.bool.config_intrusiveBatteryLed);
         mNotificationPulse = (PreferenceScreen) findPreference(KEY_NOTIFICATION_PULSE);
+        mBatteryPulse = (PreferenceScreen) findPreference(KEY_BATTERY_LIGHT);
         if (!hasNotificationLed) {
             getPreferenceScreen().removePreference(mNotificationPulse);
+            mNotificationPulse = null;
         }
-
+        if (!hasBatteryLed) {
+            getPreferenceScreen().removePreference(mBatteryPulse);
+            mBatteryPulse = null;
+        }
         if (mPackageStatusReceiver == null) {
             mPackageStatusReceiver = new PackageStatusReceiver();
         }
@@ -256,19 +265,6 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         screenTimeoutPreference.setEnabled(revisedEntries.size() > 0);
     }
 
-    int floatToIndex(float val) {
-        String[] indices = getResources().getStringArray(R.array.entryvalues_font_size);
-        float lastVal = Float.parseFloat(indices[0]);
-        for (int i=1; i<indices.length; i++) {
-            float thisVal = Float.parseFloat(indices[i]);
-            if (val < (lastVal + (thisVal-lastVal)*.5f)) {
-                return i-1;
-            }
-            lastVal = thisVal;
-        }
-        return indices.length-1;
-    }
-
     private void updateLightPulseSummary() {
         if (mNotificationPulse != null) {
             if (Settings.System.getInt(getActivity().getContentResolver(),
@@ -280,24 +276,17 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         }
     }
 
-    public void readFontSizePreference(ListPreference pref) {
-        try {
-            mCurConfig.updateFrom(ActivityManagerNative.getDefault().getConfiguration());
-        } catch (RemoteException e) {
-            Log.w(TAG, "Unable to retrieve font size");
+    private void updateBatteryPulseSummary() {
+        if (mBatteryPulse != null) {
+            if (Settings.System.getInt(getActivity().getContentResolver(),
+                    Settings.System.BATTERY_LIGHT_ENABLED, 1) == 1) {
+                mBatteryPulse.setSummary(R.string.notification_light_enabled);
+            } else {
+                mBatteryPulse.setSummary(R.string.notification_light_disabled);
+            }
         }
-
-        // mark the appropriate item in the preferences list
-        int index = floatToIndex(mCurConfig.fontScale);
-        pref.setValueIndex(index);
-
-        // report the current size in the summary text
-        final Resources res = getResources();
-        String[] fontSizeNames = res.getStringArray(R.array.entries_font_size);
-        pref.setSummary(String.format(res.getString(R.string.summary_font_size),
-                fontSizeNames[index]));
     }
-    
+
     @Override
     public void onResume() {
         super.onResume();
@@ -337,6 +326,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         readFontSizePreference(mFontSizePref);
         updateScreenSaverSummary();
         updateLightPulseSummary();
+        updateBatteryPulseSummary();
         updatePeekCheckbox();
         updateDynamicSystemBarsCheckboxes();
     }
@@ -352,6 +342,22 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         if (getActivity() == null) return;
 
         mAccelerometer.setChecked(!RotationPolicy.isRotationLocked(getActivity()));
+    }
+
+    /**
+     * Reads the current font size and sets the value in the summary text
+     */
+    public void readFontSizePreference(Preference pref) {
+        try {
+            mCurConfig.updateFrom(ActivityManagerNative.getDefault().getConfiguration());
+        } catch (RemoteException e) {
+            Log.w(TAG, "Unable to retrieve font size");
+        }
+
+        // report the current size in the summary text
+        final Resources res = getResources();
+        String fontDesc = FontDialogPreference.getFontSizeDescription(res, mCurConfig.fontScale);
+        pref.setSummary(getString(R.string.summary_font_size, fontDesc));
     }
 
     private void updatePeekCheckbox() {
@@ -407,6 +413,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         if (preference == mAccelerometer) {
             RotationPolicy.setRotationLockForAccessibility(
                     getActivity(), !mAccelerometer.isChecked());
+            return true;
         } else if (preference == mNotificationPeek) {
             Settings.System.putInt(getContentResolver(), Settings.System.PEEK_STATE,
                     mNotificationPeek.isChecked() ? 1 : 0);

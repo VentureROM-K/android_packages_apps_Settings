@@ -17,7 +17,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         android:title="@string/about_settings">
 
-        <PreferenceScreen android:key="ventureota_settings"
+        <PreferenceScreen android:key="paranoidota_settings"
                 android:title="@string/system_update_settings_list_item_title" 
                 android:summary="@string/system_update_settings_list_item_summary">
             <intent android:action="android.intent.action.MAIN"
@@ -25,7 +25,8 @@
                     android:targetClass="com.venturerom.venture.MainActivity">
 		<extra android:name="openUpdates" android:value="true" />
 	</intent>
-        </PreferenceScreen>
+
+	</PreferenceScreen>
 
 
         <PreferenceScreen android:key="additional_system_update_settings"
@@ -115,12 +116,6 @@
                 style="?android:preferenceInformationStyle"
                 android:title="@string/venture_version"
                 android:summary="@string/venture_version_default" />
-
-        <!-- Device maintainer -->
-        <Preference android:key="venture_maintainer"
-                style="?android:preferenceInformationStyle"
-                android:title="@string/venture_maintainer"
-                android:summary="@string/venture_maintainer_default" />
 
         <!-- Device FCC equipment id -->
         <Preference android:key="fcc_equipment_id"

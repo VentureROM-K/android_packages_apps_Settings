@@ -18,6 +18,7 @@
 package com.android.settings;
 
 import com.android.settings.bluetooth.DockEventReceiver;    
+import com.android.settings.hardware.VibratorIntensity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -77,7 +78,7 @@ public class SoundSettings extends SettingsPreferenceFragment implements
     private static final String KEY_DOCK_AUDIO_SETTINGS = "dock_audio";
     private static final String KEY_DOCK_SOUNDS = "dock_sounds";
     private static final String KEY_DOCK_AUDIO_MEDIA_ENABLED = "dock_audio_media_enabled";
-    private static final String KEY_VOLUME_WAKE_SCREEN = "volume_wake_screen";
+    private static final String KEY_VIBRATION_INTENSITY = "vibration_intensity";
 
     private static final String[] NEED_VOICE_CAPABILITY = {
             KEY_RINGTONE, KEY_DTMF_TONE, KEY_CATEGORY_CALLS,
@@ -95,7 +96,6 @@ public class SoundSettings extends SettingsPreferenceFragment implements
     private CheckBoxPreference mLockSounds;
     private Preference mRingtonePreference;
     private Preference mNotificationPreference;
-    private CheckBoxPreference mVolumeWakeScreen;
 
     private Runnable mRingtoneLookupRunnable;
 
@@ -180,10 +180,6 @@ public class SoundSettings extends SettingsPreferenceFragment implements
         mLockSounds.setChecked(Settings.System.getInt(resolver,
                 Settings.System.LOCKSCREEN_SOUNDS_ENABLED, 1) != 0);
 
-        mVolumeWakeScreen = (CheckBoxPreference) findPreference(KEY_VOLUME_WAKE_SCREEN);
-        mVolumeWakeScreen.setChecked(Settings.System.getInt(resolver,
-                Settings.System.VOLUME_WAKE_SCREEN, 0) == 1);
-
         mRingtonePreference = findPreference(KEY_RINGTONE);
         mNotificationPreference = findPreference(KEY_NOTIFICATION_SOUND);
 
@@ -223,6 +219,7 @@ public class SoundSettings extends SettingsPreferenceFragment implements
                     getPreferenceScreen().removePreference(pref);
                 }
             }
+            mRingtonePreference = null;
         }
 
         mRingtoneLookupRunnable = new Runnable() {
@@ -238,6 +235,10 @@ public class SoundSettings extends SettingsPreferenceFragment implements
             }
         };
 
+        if (!VibratorIntensity.isSupported() || vibrator == null || !vibrator.hasVibrator()) {
+            removePreference(KEY_VIBRATION_INTENSITY);
+        }
+
         initDockSettings();
     }
 
@@ -245,6 +246,7 @@ public class SoundSettings extends SettingsPreferenceFragment implements
     public void onResume() {
         super.onResume();
 
+        updateState(true);
         lookupRingtoneNames();
 
         IntentFilter filter = new IntentFilter(Intent.ACTION_DOCK_EVENT);
@@ -256,6 +258,13 @@ public class SoundSettings extends SettingsPreferenceFragment implements
         super.onPause();
 
         getActivity().unregisterReceiver(mReceiver);
+    }
+
+    // updateState in fact updates the UI to reflect the system state
+    private void updateState(boolean force) {
+        if (getActivity() == null) return;
+        ContentResolver resolver = getContentResolver();
+
     }
 
     private void updateRingtoneName(int type, Preference preference, int msg) {
@@ -315,9 +324,6 @@ public class SoundSettings extends SettingsPreferenceFragment implements
             Settings.System.putInt(getContentResolver(), Settings.System.LOCKSCREEN_SOUNDS_ENABLED,
                     mLockSounds.isChecked() ? 1 : 0);
 
-        } else if (preference == mVolumeWakeScreen) {
-            Settings.System.putInt(getContentResolver(), Settings.System.VOLUME_WAKE_SCREEN,
-                    mVolumeWakeScreen.isChecked() ? 1 : 0);
         } else if (preference == mMusicFx) {
             // let the framework fire off the intent
             return false;
@@ -351,7 +357,11 @@ public class SoundSettings extends SettingsPreferenceFragment implements
         } else if (preference == mDockAudioMediaEnabled) {
             Settings.Global.putInt(getContentResolver(), Settings.Global.DOCK_AUDIO_MEDIA_ENABLED,
                     mDockAudioMediaEnabled.isChecked() ? 1 : 0);
+        } else {
+            // If we didn't handle it, let preferences handle it.
+            return super.onPreferenceTreeClick(preferenceScreen, preference);
         }
+
         return true;
     }
 

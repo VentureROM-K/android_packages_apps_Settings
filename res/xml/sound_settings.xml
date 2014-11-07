@@ -29,7 +29,7 @@
     <Preference
             android:key="musicfx"
             android:title="@string/musicfx_title">
-        <intent android:targetPackage="com.android.musicfx"
+            <intent android:targetPackage="com.android.musicfx"
                 android:targetClass="com.android.musicfx.ControlPanelPicker" />
     </Preference>
 
@@ -95,15 +95,11 @@
             android:entries="@array/emergency_tone_entries"
             android:entryValues="@array/emergency_tone_values" />
 
-    <!-- Volume Rocker -->
-    <PreferenceCategory
-        android:title="@string/volume_buttons_category"/>
-
-    <CheckBoxPreference
-        android:key="volume_wake_screen"
-        android:title="@string/volume_wake_title"
-        android:summary="@string/volume_wake_summary"
-        android:defaultValue="false" />
+    <com.android.settings.hardware.VibratorIntensity
+            android:key="vibration_intensity"
+            android:title="@string/vibrator_intensity_title"
+            android:dialogTitle="@string/vibrator_intensity_title"
+            android:persistent="false" />
 
     <!-- Dock -->
     <PreferenceCategory
@@ -125,5 +121,15 @@
         android:key="dock_sounds"
         android:title="@string/dock_sounds_enable_title"
         android:defaultValue="false" />
+
+    <PreferenceCategory
+        android:title="@string/headset_category_title" >
+
+        <com.android.settings.cyanogenmod.SystemSettingCheckBoxPreference
+            android:key="headset_connect_player"
+            android:title="@string/headset_connect_player_title"
+            android:summary="@string/headset_connect_player_summary"
+            android:defaultValue="false" />
+    </PreferenceCategory>
 
 </PreferenceScreen>
