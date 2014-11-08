@@ -87,7 +87,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     private CheckBoxPreference mDynamicNavigationBar;
     private CheckBoxPreference mDynamicSystemBarsGradient;
     private CheckBoxPreference mDynamicStatusBarFilter;
-    private WarnedListPreference mFontSizePref;
+//    private WarnedListPreference mFontSizePref;
     private PreferenceScreen mNotificationPulse;
     private PreferenceScreen mBatteryPulse;
 

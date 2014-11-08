@@ -243,6 +243,8 @@ public class AdvancedWifiSettings extends SettingsPreferenceFragment
                         Toast.LENGTH_SHORT).show();
                 return false;
             }
+		}
+
 	if (preference == mNotifyChangedNetwork) {
             int notifyValue = Integer.valueOf((String) newValue);
             int index = mNotifyChangedNetwork.findIndexOfValue((String) newValue);

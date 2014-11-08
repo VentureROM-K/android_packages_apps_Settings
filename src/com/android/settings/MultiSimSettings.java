@@ -191,7 +191,7 @@ public class MultiSimSettings extends PreferenceActivity implements DialogInterf
             entryValuesPrompt[i] = Integer.toString(i);
         }
 
-        int i = updateSimNameEntries();
+//        int i = updateSimNameEntries();
         entryValuesPrompt[i] = Integer.toString(i);
         entriesPrompt[i] = getResources().getString(R.string.prompt);
         summariesPrompt[i] = getResources().getString(R.string.prompt);
