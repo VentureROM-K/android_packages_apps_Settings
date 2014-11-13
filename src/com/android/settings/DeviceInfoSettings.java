@@ -127,9 +127,7 @@ public class DeviceInfoSettings extends RestrictedSettingsFragment {
         findPreference(KEY_KERNEL_VERSION).setSummary(getFormattedKernelVersion());
         findPreference(KEY_VENTURE_VERSION).setEnabled(true);
         setValueSummary(KEY_VENTURE_VERSION, "ro.venture.version");
-        if (KEY_VENTURE_MAINTAINER != null && maintainer != null) {
-            findPreference(KEY_VENTURE_MAINTAINER).setSummary(maintainer);
-        }
+        findPreference(KEY_VENTURE_MAINTAINER).setSummary(maintainer);
 
         if (!SELinux.isSELinuxEnabled()) {
             String status = getResources().getString(R.string.selinux_status_disabled);
